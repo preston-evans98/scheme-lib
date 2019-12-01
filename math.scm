@@ -221,34 +221,116 @@
     (and (variable? v1) (variable? v2) (eq? v1 v2)))
 (define (=number? x y)
   (and (number? x) (number? y) (= x y)))
+
+; --- SUM: prefix notation only, handles any length of list ---
+; (define (sum? x) (and (pair? x) (eq? (car x) '+)))
+; (define (addend s) (cadr s))
+; (define (augend p) 
+;   (if (null? (cdddr p))
+;     (caddr p)
+;     (cons '+ (cddr p))))
+; (define (make-sum a1 a2)
+;   (cond
+;     ((and (number? a1) (number? a2))
+;       (+ a1 a2))
+;     ((=number? a1 0) a2)
+;     ((=number? a2 0) a1)
+;   (else (list '+ a1 a2))))
+
+; --- PRODUCT: prefix, any length of list ---
+; (define (product? x) (and (pair? x) (eq? (car x) '*)))
+; (define (multiplier p) (cadr p))
+; (define (multiplicand p) 
+;   (if (null? (cdddr p))
+;     (caddr p)
+;     (cons '* (cddr p))))
+; (define (make-product a1 a2) 
+;   (cond
+;     ((and (number? a1) (number? a2)) (* a1 a2))
+      
+;     ((or (=number? a1 0) (=number? a2 0)) 0)
+;     ((=number? a2 1) a1)
+;     ((=number? a1 1) a2)
+;   (else (list '* a1 a2))))
+; --- PRODUCT: prefix, any length of list ---
+
+; --- Infix SUM, must be fully parenthesized ---
+; (define (sum? x) (and (pair? x) (eq? (cadr x) '+)))
+; (define (addend s) (car s))
+; (define (augend s) 
+;   (caddr s))
+; (define (make-sum a1 a2)
+;   (cond
+;     ((and (number? a1) (number? a2))
+;       (+ a1 a2))
+;     ((=number? a1 0) a2)
+;     ((=number? a2 0) a1)
+;   (else (list a1 '+ a2))))
+
+; ; --- INFIX PRODUCT, must be fully parenthesized----
+; (define (product? x) (and (pair? x) (eq? (cadr x) '*)))
+; (define (multiplier p) (car p))
+; (define (multiplicand p) 
+;     (caddr p))
+; (define (make-product a1 a2) 
+;   (cond
+;     ((and (number? a1) (number? a2)) (* a1 a2))
+      
+;     ((or (=number? a1 0) (=number? a2 0)) 0)
+;     ((=number? a2 1) a1)
+;     ((=number? a1 1) a2)
+;   (else (list a1 '* a2))))
+
+; ----INFIX w/ order of ops ---
+; SUM
+(define (memq item x) 
+  (cond ((null? x) false)
+  ((eq? item (car x)) x) 
+  (else (memq item (cdr x)))))
+
+(define (sum? x) (and (pair? x) (memq '+ x)))
+(define (addend s) 
+  (define (iter acc lst)
+    (if (or (null? lst) (eq? (car lst) '+)) 
+      acc
+      (iter (cons (car lst) acc) (cdr lst))))
+  (let ((result (iter () s)))
+    (cond ((null? result) 0)
+     ((and (pair? result) (null? (cdr result))) (car result))
+     (else result))))
+  
+(define (augend s) 
+  (cond  ((null? s) 0) 
+    ((and (eq? (car s) '+) (pair? (cdr s)) (null? (cddr s)))(cadr s))
+    ((eq? (car s) '+) (cdr s))
+    (else (augend (cdr s)))))
 (define (make-sum a1 a2)
   (cond
     ((and (number? a1) (number? a2))
       (+ a1 a2))
     ((=number? a1 0) a2)
     ((=number? a2 0) a1)
-  (else (list '+ a1 a2))))
+  (else (list a1 '+ a2))))
+
+; ; --- INFIX w/order of ops PRODUCT----
+(define (product? x) (and (pair? x) (not (null? (cdr x))) (eq? (cadr x) '*)))
+(define (multiplier p) (car p))
+(define (multiplicand p)
+  (cond ((null? (cdr p)) 1)
+    ((and (pair? (cddr p)) (null? (cdddr p)))
+      (caddr p))
+  (else (cddr p))))
+
 
 (define (make-product a1 a2) 
   (cond
     ((and (number? a1) (number? a2)) (* a1 a2))
-      
     ((or (=number? a1 0) (=number? a2 0)) 0)
     ((=number? a2 1) a1)
     ((=number? a1 1) a2)
-  (else (list '* a1 a2))))
-(define (sum? x) (and (pair? x) (eq? (car x) '+)))
-(define (addend s) (cadr s))
-(define (augend p) 
-  (if (null? (cdddr p))
-    (caddr p)
-    (cons '+ (cddr p))))
-(define (product? x) (and (pair? x) (eq? (car x) '*)))
-(define (multiplier p) (cadr p))
-(define (multiplicand p) 
-  (if (null? (cdddr p))
-    (caddr p)
-    (cons '* (cddr p))))
+  ; ((pair? a2) (cons a1 (cons '* a2)))
+  (else (list a1 '* a2))))
+
 (define (exponent? x)
   (and (pair? x) (eq? (car x) '^)))
 (define (base p) (cadr p))
@@ -275,3 +357,28 @@
             (make-product (exponent exp) (make-exponent (base exp) (make-sum (exponent exp) (- 1))))
             (deriv (base exp) var)))
         (else (error "unkown expression type DERIV:" exp))))
+
+
+; ;; ------------------- MISC ----------------------
+; ;; A procedure to draw pascals' triangle
+; (define (pascal height)
+;   (define (iter current-height current-row)
+;     (define (draw-row prev-row)
+;         (if (null? (cdr prev-row)) 
+;           1
+;           (cons (+ (car prev-row) (cadr prev-row)) (draw-row (cdr prev-row)))))
+;     (display current-row)
+;     (if (> 0 height) 
+;       (iter (- height 1) (cons 1 (draw-row current-row))))
+;   (iter (- height 1) (1))))
+
+; ;(print (fib 10000000))
+; ; (print (pascal 1))
+; (print (deriv '(* x y (+ x 3)) 'x))
+; (print (deriv '(x + (3 * (x + (y + 2)))) 'x))
+; (print (deriv '(x * 2 * 2) 'x))
+; (print (augend ' ( 3 * 2 * 1 + 4 * x)))
+(print (deriv '(x + 3 * (x + y + 2 * (^ x 4)) * 2 * 2 * 2 + 2) 'x))
+; (print (make-exponent 'x 5))
+; (print (deriv '(x + 1 + x * 2 * 5 + x) 'x))
+; (print (product? '(x)))
