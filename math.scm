@@ -1,13 +1,51 @@
+;; Load utilities
+(load "utils.scm")
+
 ;; Adapt BiwaScheme to MIT Scheme
 (define print display)
 (define mod remainder)
 
 ;; ---------------- USEFUL PRIMITIVES -----------------------
 (define (square x) (* x x))
+(define (average . items)
+  (define (iter total lst item-count)
+    (if (null? lst)
+      (/ total item-count)
+      (iter (+ total (car lst)) (cdr lst) (+ item-count 1))))
+  (iter 0 items 0))
 (define (cube x) (* x x x))
 (define (even? n) (= 0 (mod n 2)))
 (define (odd? n) (= 1 (mod n 2)))
+(define (positive? n) (< 0 n))
+(define (negative? n) (> 0 n))
 (define (inc x) (+ x 1))
+(define (identity x) x)
+(define (average-damp f)
+  (lambda (x) (average x (f x))))
+(define (abs x)
+  (if (>= x 0)
+    x
+    (- x)))
+
+
+;; ---------------- USEFUL PROCEDURES -----------------------
+;; Sum f(x) from a to b where the x[n+1] is next(x[n])
+;; Accumulate is defined in utils.scm
+(define (sum f a next b)
+    (accumulate + 0 f a next b))
+
+;; Sum integers from a to b
+(define (sum-integers a b)
+  (sum identity a inc b))
+
+;; A slow formula for Pi / 8 due to Lebniz
+;; (* 8 (pi-sum 1 10000)) = 3.14139
+(define (pi-sum a b)
+  (if (> a b)
+    0 
+    (+ (/ 1.0 (* a (+ 2 a)))
+      (pi-sum (+ a 4) b))))
+
 
 
 ;; ---------------- EFFICIENT POWERS and FIBONACCI -----------------------
@@ -47,6 +85,38 @@
     (else (fib-iter (+ (* b q) (* a q) (* a p))
                    (+ (* b p) (* a q)) p q (- count 1)))))
 
+
+;; ---------------- EFFICIENT ROOTS AND FIXED POINTS-----------------------
+; Half interval method for finding roots. Logarithmic time
+(define (half-interval-method f a b)
+  (define (close-enough? x y) (< (abs (- x y)) 0.001))
+  (define (search f neg-point pos-point)
+    (let ((midpoint (average neg-point pos-point)))
+      (if (close-enough? neg-point pos-point)
+        midpoint
+        (let ((test-value (f midpoint)))
+          (cond ((positive? test-value)
+              (search f neg-point midpoint))
+            ((negative? test-value)
+              (search f midpoint pos-point))
+            (else midpoint))))))
+    
+  (let ((a-value (f a)) (b-value (f b)))
+    (cond ((and (negative? a-value) (positive? b-value))
+        (search f a b))
+      ((and (positive? a-value) (negative? b-value))
+        (search f b a))
+      (else (error "values are not of opposite sign" a b)))))
+  
+(define (fixed-point f first-guess)
+  (define tolerance .00001)
+  (define (close-enough? x y) (< (abs (- x y)) tolerance))
+  (define (try guess)
+    (let ((next (f guess)))
+      (if (close-enough? guess next)
+        next
+        (try next))))
+  (try first-guess))
 
 ;; ---------------- PRIMES -----------------------
 ;; Fermat's test for primality
@@ -118,6 +188,20 @@
 
 
 ;; ---------------- CALCULUS -----------------------
+;; Use Newton's method to find derivative
+
+(define (newtons-method f guess)
+  (define (deriv g)
+    (define dx 0.00001)
+    (lambda (x) (/ ( - (g (+ x dx)) (g x)) dx)))
+  (define (newton-transform g)
+    (lambda (x) (- x (/ (g x) ((deriv g ) x)))))
+  (fixed-point (newton-transform f) guess))
+
+(define (sqrt x)
+  (newtons-method (lambda (y) (- (square y) x)) 1.0))
+
+
 ;; Approximate the area under a function from A to B using N terms
 (define (simpson f a b n)
   (define h (/ (- b a) n))
