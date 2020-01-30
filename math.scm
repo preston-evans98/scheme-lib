@@ -27,12 +27,12 @@
 (load "utils.scm")
 
 ;; Adapt BiwaScheme to MIT Scheme
-; (define print (lambda (x) (begin (display x) (display "\n"))))
 (define (print . args) 
-  (if (null? args)
-    (display "\n")
-    (begin (display (car args))
-      (print (cdr args)))))
+  (cond ((null? args) (display "\n"))
+    ((null? (cdr args))
+      (begin (display (car args)) (display "\n")))
+    (else (begin (display (car args))
+      (print (cdr args))))))
 
 (define mod remainder)
 
