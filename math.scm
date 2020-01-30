@@ -2,7 +2,13 @@
 (load "utils.scm")
 
 ;; Adapt BiwaScheme to MIT Scheme
-(define print display)
+; (define print (lambda (x) (begin (display x) (display "\n"))))
+(define (print . args) 
+  (if (null? args)
+    (display "\n")
+    (begin (display (car args))
+      (print (cdr args)))))
+
 (define mod remainder)
 
 ;; ---------------- USEFUL PRIMITIVES -----------------------
@@ -26,6 +32,10 @@
   (if (>= x 0)
     x
     (- x)))
+(define (gcd a b)
+  (if (= b 0) 
+    a
+    (gcd b (mod a b))))
 
 
 ;; ---------------- USEFUL PROCEDURES -----------------------
@@ -378,7 +388,7 @@
 ; (print (deriv '(x + (3 * (x + (y + 2)))) 'x))
 ; (print (deriv '(x * 2 * 2) 'x))
 ; (print (augend ' ( 3 * 2 * 1 + 4 * x)))
-(print (deriv '(x + 3 * (x + y + 2 * (^ x 4)) * 2 * 2 * 2 + 2) 'x))
+; (print (deriv '(x + 3 * (x + y + 2 * (^ x 4)) * 2 * 2 * 2 + 2) 'x))
 ; (print (make-exponent 'x 5))
 ; (print (deriv '(x + 1 + x * 2 * 5 + x) 'x))
 ; (print (product? '(x)))
