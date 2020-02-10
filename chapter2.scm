@@ -25,7 +25,7 @@
 
 (load "math.scm")
 
-
+;  --------------- Imaginary Numbers ---------------
 (define (real-part-rectangular z)
     (car z))
 (define (imag-part-rectangular z)
